@@ -1,14 +1,19 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
 namespace Keyboard {
 
 	public delegate void KeyActionHandler(IntPtr hookID, KeyActionArgs e);
 	public delegate bool KeyActionHandlerEx(IntPtr hookID, KeyActionArgs e);
+	/// <summary>
+	/// Структура переменной с информацией о клавиатурном событии.
+	/// </summary>
 	public struct KeyActionArgs {
-		public  KeyActionArgs(int keyCode, int keyAction){KeyCode=keyCode;KeyAction=keyAction;}
-		public int KeyCode;
+		public  KeyActionArgs(Keys keyCode, int keyAction){KeyCode=keyCode;KeyAction=keyAction;}
+		public KeyActionArgs(int keyCode, int keyAction) { KeyCode = (Keys)keyCode; KeyAction = keyAction; }
+		public Keys KeyCode;
 		public int KeyAction;
 	}
 
@@ -53,7 +58,7 @@ namespace Keyboard {
 		///  Назначатель обработчика
 		/// </summary>
 		/// <param name="proc">Некий держатель функции. Ему мы заранее присвоили функцию HookCallback()</param>
-		/// <returns>Вроде, возвращает ИН прерывателя... Или прерывания. Хз ваще, надо экспериментировать или читать где-то.</returns>
+		/// <returns>Вроде, возвращает ID прерывателя... Или прерывания. Хз ваще, надо экспериментировать или читать где-то.</returns>
 		private static IntPtr SetHook(LowLevelKeyboardProc proc) {
 			using (Process curProcess = Process.GetCurrentProcess())
 			using (ProcessModule curModule = curProcess.MainModule) {
@@ -65,7 +70,7 @@ namespace Keyboard {
 		/// Задаваемая Функция - обработчик нажатия кнопки. Вызывается в прерывании.
 		/// "отклик на действие с клавишей"
 		/// </summary>
-		/// <param name="nCode">Некий код, который если нуль, то всё плохо</param>
+		/// <param name="nCode">Некий код, который если менее нуля, то всё плохо</param>
 		/// <param name="wParam">Действие над клавишей</param>
 		/// <param name="lParam">Код клавиши</param>
 		/// <returns></returns>
@@ -79,9 +84,6 @@ namespace Keyboard {
 			}else{
 				return CallNextHookEx(_hookID, nCode, wParam, lParam);
 			}
-
-			if(OnKeyAction != null)
-				OnKeyAction(_hookID, new KeyActionArgs(keyCode, keyAction));
 			
 			bool block = false;
 			if(OnKeyActionEx != null)
@@ -89,28 +91,44 @@ namespace Keyboard {
 
 			if(block)
 				return new IntPtr(1);
-			return CallNextHookEx(_hookID, nCode, wParam, lParam); // Передаём управление следующему обработчику
-		}
 
+			if (OnKeyAction != null)
+				OnKeyAction(_hookID, new KeyActionArgs(keyCode, keyAction));
+
+			return CallNextHookEx(_hookID, nCode, wParam, lParam); // Передаём управление следующему обработчику в системе
+		}
+		#endregion
+
+		#region Events
 		/// <summary>
 		/// Стреляет, при попадании евента в Hooker. Позволяет реагировать, но не блокировать евент.
 		/// В качестве определителя источника передаётся ID-указатель перехватывания. Можете составлять себе словари для них, если очень хочется несколько хуков.
 		/// </summary>
 		public event KeyActionHandler OnKeyAction;
 		/// <summary>
-		/// А этот позволяет отреагировать и указать, должен ли Hooker заблокировать дальнейшую обработку евента системой
+		/// Подписка на это событе позволяет ещё и указать, должен ли Hooker заблокировать дальнейшую обработку евента системой
 		/// Верните 1(true), чтобы заблокировать евент. 0(false) - пропустить далее.
+		/// ВАЖНО: Hooker не станет вызывать OnKeyAction, если будет возвращено требование блокирования.
 		/// Нельзя заблокировать Ctrl+Alt+Del.
 		/// В качестве определителя источника передаётся ID-указатель перехватывания. Можете составлять себе словари для них, если очень хочется несколько хуков.
 		/// </summary>
 		public event KeyActionHandlerEx OnKeyActionEx;
-		
 		#endregion
 
 		#region Structing
+		/// <summary>
+		/// По инициализации перехватчик "подписывается на клавиатурные события" при помощи SetWindowsHookEx.
+		/// После этого можно подписаться на дёргаемые им события.
+		/// </summary>
 		public KeyHooker() {
 			_hookID = SetHook(HookCallback);
 		}
 		#endregion
 	}
+
+	public class KeyBinder {
+		
+
+	}
+
 }
