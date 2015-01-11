@@ -58,7 +58,8 @@ namespace Keyboard {
 		///  Назначатель обработчика
 		/// </summary>
 		/// <param name="proc">Некий держатель функции. Ему мы заранее присвоили функцию HookCallback()</param>
-		/// <returns>Вроде, возвращает ID прерывателя... Или прерывания. Хз ваще, надо экспериментировать или читать где-то.</returns>
+		/// <returns>Вроде, возвращает ID прерывателя... Или прерывания. Хз ваще, надо экспериментировать или читать где-то.
+		/// Важно, что возвращаемый идентификатор потом можно использовать для отключения перехвата.</returns>
 		private static IntPtr SetHook(LowLevelKeyboardProc proc) {
 			using (Process curProcess = Process.GetCurrentProcess())
 			using (ProcessModule curModule = curProcess.MainModule) {
@@ -121,9 +122,48 @@ namespace Keyboard {
 		/// После этого можно подписаться на дёргаемые им события.
 		/// </summary>
 		public KeyHooker() {
-			_hookID = SetHook(HookCallback);
+			Hook();
+		}
+		/// <summary>
+		/// В этом конструкторе можно сказать, должен ли Hooker немедленно начать перехват
+		/// </summary>
+		/// <param name="immediatelyHook">True - перехват начнётся сразу. Подписывайся и реагируй.
+		/// False - можешь подписаться на события и после этого начать перехват методом Hook.</param>
+		public KeyHooker(bool immediatelyHook) {
+			if(immediatelyHook)
+				Hook();
 		}
 		#endregion
+
+		#region Public Commands
+		/// <summary>
+		/// Hook them all!
+		/// </summary>
+		public void Hook() {
+			if (_hookID != IntPtr.Zero) return;
+			_hookID = SetHook(HookCallback);
+		}
+		/// <summary>
+		/// На случай проблем с устойчивостью перехвата.
+		/// Если перехват ещё выполняется, он просто начнётся этим методом.
+		/// For the case of instable hook.
+		/// </summary>
+		public void Rehook() {
+			if (_hookID != IntPtr.Zero){
+				UnhookWindowsHookEx(_hookID);
+				_hookID = IntPtr.Zero;
+			}
+			_hookID = SetHook(HookCallback);
+		}
+		/// <summary>
+		/// Let's get out here.
+		/// </summary>
+		public void Unhook() {
+			UnhookWindowsHookEx(_hookID);
+			_hookID = IntPtr.Zero;
+		}
+		#endregion
+
 	}
 
 	public class KeyBinder {

@@ -15,11 +15,11 @@ namespace KeyHooking_Refactored {
 
 		private void CB_makeHooker_Click(object sender, EventArgs e){
 			_hooker = new KeyHooker();
-			_hooker.OnKeyAction +=_hooker_OnKeyAction;
+			_hooker.OnKeyAction += Hooker_OnKeyAction;
 			_hooker.OnKeyActionEx += _hooker_OnKeyActionEx;
 		}
 
-		private void _hooker_OnKeyAction(IntPtr hookID, KeyActionArgs e){
+		private void Hooker_OnKeyAction(IntPtr hookID, KeyActionArgs e){
 				lb_action.Items.Insert(0, e.KeyAction);
 				lb_code.Items.Insert(0, (int)e.KeyCode);
 				lb_key.Items.Insert(0, e.KeyCode);
