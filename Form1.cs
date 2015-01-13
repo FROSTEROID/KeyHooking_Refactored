@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
 
-using Keyboard;
+using KeyboardExtending;
 
 namespace KeyHooking_Refactored {
 	public partial class Form1 : Form {

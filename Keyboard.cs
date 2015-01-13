@@ -1,39 +1,47 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+
 using System.Windows.Forms;
 
-namespace Keyboard {
+namespace KeyboardExtending {
 
+	#region Consts and Enums
+	public enum KeyAction {
+		KeyDown = 0x0100,
+		KeyUp = 0x0101
+	}
+	#endregion
+
+	#region Delegate Types and their arguments types
 	public delegate void KeyActionHandler(IntPtr hookID, KeyActionArgs e);
 	public delegate bool KeyActionHandlerEx(IntPtr hookID, KeyActionArgs e);
 	/// <summary>
 	/// Структура переменной с информацией о клавиатурном событии.
 	/// </summary>
 	public struct KeyActionArgs {
-		public  KeyActionArgs(Keys keyCode, int keyAction){KeyCode=keyCode;KeyAction=keyAction;}
+		public KeyActionArgs(Keys keyCode, int keyAction) { KeyCode = keyCode; KeyAction = keyAction; }
 		public KeyActionArgs(int keyCode, int keyAction) { KeyCode = (Keys)keyCode; KeyAction = keyAction; }
 		public Keys KeyCode;
 		public int KeyAction;
 	}
+	#endregion
 
 	public class KeyHooker {
 		#region Constants
-			#region keyActionCodes
-			private const int WH_KEYBOARD_LL = 13; // Номер прерывания, как йа понимаю. А может быть, некий уровень/способ вмешательства в работу системы. Используется при назначении обработчика (Вызове SetWindowsHookEx).
-			private const int WM_KEYDOWN = 0x0100;  // Число, обозначающее Событие вжатия кнопки
-			private const int WM_KEYUP = 0x0101;// Число, обозначающее Событие отжатия кнопки
-			#endregion
+		#region keyActionCodes
+		private const int WH_KEYBOARD_LL = 13; // Номер прерывания, как йа понимаю. А может быть, некий уровень/способ вмешательства в работу системы. Используется при назначении обработчика (Вызове SetWindowsHookEx).
+		#endregion
 		#endregion
 
 		#region Parameters
-			private static IntPtr _hookID = IntPtr.Zero; // Номер нашего прерывателя. Инициализировали нулём.
+		private static IntPtr _hookID = IntPtr.Zero; // Номер нашего прерывателя. Инициализировали нулём.
 		#endregion
 
 		#region DLL signatures and API-hooking-related types
-			// Тут пиздец. Это сигнатуры использования библиотек, йа ещё не проникся их логикой. 
-			// Этакое объявление о том, что в такой-то библиотеке есть такая-то функция, которая принимает такие-то аргументы.
-			// Собсвенно, этот код позволяет этими самыми функциями пользоваться. На системе, где этих бибилиотек нет, ничего не выйдет хорошего.
+		// Тут пиздец. Это сигнатуры использования библиотек, йа ещё не проникся их логикой. 
+		// Этакое объявление о том, что в такой-то библиотеке есть такая-то функция, которая принимает такие-то аргументы.
+		// Собсвенно, этот код позволяет этими самыми функциями пользоваться. На системе, где этих бибилиотек нет, ничего не выйдет хорошего.
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
 		// АПИшная Назначалка обработчика.
 		private static extern IntPtr SetWindowsHookEx(int idHook,
@@ -51,7 +59,7 @@ namespace Keyboard {
 		private static extern IntPtr GetModuleHandle(string lpModuleName);
 
 		private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam); // Тип делегата для обработки события клавиатуры
-		#endregion 
+		#endregion
 
 		#region Hooking
 		/// <summary>
@@ -75,22 +83,23 @@ namespace Keyboard {
 		/// <param name="wParam">Действие над клавишей</param>
 		/// <param name="lParam">Код клавиши</param>
 		/// <returns></returns>
-		private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam){
+		private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam) {
 			int keyCode;
 			int keyAction;
-			
-			if (nCode >= 0){
+
+			if (nCode >= 0) {
 				keyCode = Marshal.ReadInt32(lParam);
 				keyAction = (int)wParam;
-			}else{
+			}
+			else {
 				return CallNextHookEx(_hookID, nCode, wParam, lParam);
 			}
-			
+
 			bool block = false;
-			if(OnKeyActionEx != null)
+			if (OnKeyActionEx != null)
 				block = OnKeyActionEx(_hookID, new KeyActionArgs(keyCode, keyAction));
 
-			if(block)
+			if (block)
 				return new IntPtr(1);
 
 			if (OnKeyAction != null)
@@ -130,7 +139,7 @@ namespace Keyboard {
 		/// <param name="immediatelyHook">True - перехват начнётся сразу. Подписывайся и реагируй.
 		/// False - можешь подписаться на события и после этого начать перехват методом Hook.</param>
 		public KeyHooker(bool immediatelyHook) {
-			if(immediatelyHook)
+			if (immediatelyHook)
 				Hook();
 		}
 		#endregion
@@ -149,7 +158,7 @@ namespace Keyboard {
 		/// For the case of instable hook.
 		/// </summary>
 		public void Rehook() {
-			if (_hookID != IntPtr.Zero){
+			if (_hookID != IntPtr.Zero) {
 				UnhookWindowsHookEx(_hookID);
 				_hookID = IntPtr.Zero;
 			}
@@ -166,8 +175,64 @@ namespace Keyboard {
 
 	}
 
-	public class KeyBinder {
-		
+	public class KeyBinder { //TODO: There is no KeyBinder. ;)
+		#region Serving objects
+		KeyHooker _hooker;
+		#endregion
+
+		#region Structing
+		public KeyBinder() {
+			_hooker = new KeyHooker();
+
+		}
+		#endregion
+	}
+
+	static class LayoutWatcher {
+		#region  DLL signatures
+		// Сохранил полный путь для.
+		[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+		private static extern IntPtr GetKeyboardLayout(int windowsThreadProcessID);
+
+		[DllImport("user32.dll", CharSet = CharSet.Auto)]
+		private static extern int GetWindowThreadProcessId(IntPtr handleWindow, out int processID);
+
+		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+		public static extern IntPtr GetForegroundWindow();
+		#endregion
+
+		#region Gettings
+		/// <summary>
+		/// Получить текущую раскладку
+		/// </summary>
+		/// <returns>Идентификационный номер активной раскладки</returns>
+		public static int GetLayoutID() {
+			IntPtr fWin = GetForegroundWindow();
+			int a; int winThrProsID = GetWindowThreadProcessId(fWin, out a);
+			IntPtr lOut = GetKeyboardLayout(winThrProsID);
+			for (int i = 0; i < InputLanguage.InstalledInputLanguages.Count; i++)
+				if (lOut == InputLanguage.InstalledInputLanguages[i].Handle)
+					return InputLanguage.InstalledInputLanguages[i].Culture.KeyboardLayoutId;
+			return 0;
+		}
+		#endregion
+	}
+
+	public class KeyLogger { //TODO: There is no KeyLogger. ;)
+		#region Serving objects
+		KeyHooker _hooker;
+		#endregion
+
+		#region Structing
+		public KeyLogger() {
+			_hooker = new KeyHooker(false);
+			_hooker.OnKeyAction += _hooker_OnKeyAction;
+		}
+		#endregion
+
+		void _hooker_OnKeyAction(IntPtr hookID, KeyActionArgs e) {
+			
+		}
 
 	}
 
