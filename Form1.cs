@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Windows.Forms;
 
@@ -7,12 +8,19 @@ using KeyboardExtending;
 
 namespace KeyHooking_Refactored {
 	public partial class Form1 : Form {
+
+		#region Serving objects
+		KeyHooker _hooker;
+		KeysConverter _converter;
+		KeyLogger _logger;
+		#endregion
+
 		public Form1() {
+		_converter = new KeysConverter();
 			InitializeComponent();
 		}
 
-		KeyHooker _hooker;
-
+		#region Hooker demostration UI and Handlers
 		private void CB_makeHooker_Click(object sender, EventArgs e){
 			_hooker = new KeyHooker();
 			_hooker.OnKeyAction += Hooker_OnKeyAction;
@@ -22,11 +30,36 @@ namespace KeyHooking_Refactored {
 		private void Hooker_OnKeyAction(IntPtr hookID, KeyActionArgs e){
 				lb_action.Items.Insert(0, e.KeyAction);
 				lb_code.Items.Insert(0, (int)e.KeyCode);
-				lb_key.Items.Insert(0, e.KeyCode);
+				lb_keyStr.Items.Insert(0, e.KeyCode.ToString());
+				lb_keyConv.Items.Insert(0, _converter.ConvertToString(e.KeyCode));
 		}
 		private bool _hooker_OnKeyActionEx(IntPtr hookID, KeyActionArgs e){
 			return cb_blockAll.Checked;
 		}
+		#endregion
 
+		#region Logger demostration UI and Handlers
+		private void CB_makeLogger_Click(object sender, EventArgs e) {
+			_logger = new KeyLogger();
+			//_logger.Begin();
+		}
+		#endregion
+
+		#region ЭЭЭэкспериментыЫЫЫ
+		private void CB_test_Click(object sender, EventArgs e) {
+		
+		KeysConverter a = new KeysConverter();
+		MessageBox.Show(Keys.D5.ToString());
+
+		/*
+			StreamWriter s = new StreamWriter(new FileStream("test.txt", FileMode.OpenOrCreate), Encoding.Unicode);
+			s.Write("Azaz!");
+			s.Flush();
+			s.WriteLine("Azaz!");
+			s.Flush();
+			s.Close();
+		*/
+		}
+		#endregion
 	}
 }
