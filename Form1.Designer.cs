@@ -116,7 +116,7 @@
 			// 
 			// CB_makeLogger
 			// 
-			this.CB_makeLogger.Location = new System.Drawing.Point(459, 10);
+			this.CB_makeLogger.Location = new System.Drawing.Point(607, 12);
 			this.CB_makeLogger.Name = "CB_makeLogger";
 			this.CB_makeLogger.Size = new System.Drawing.Size(152, 43);
 			this.CB_makeLogger.TabIndex = 8;
@@ -126,7 +126,7 @@
 			// 
 			// CB_test
 			// 
-			this.CB_test.Location = new System.Drawing.Point(536, 315);
+			this.CB_test.Location = new System.Drawing.Point(684, 469);
 			this.CB_test.Name = "CB_test";
 			this.CB_test.Size = new System.Drawing.Size(75, 23);
 			this.CB_test.TabIndex = 9;
@@ -157,7 +157,7 @@
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(623, 504);
+			this.ClientSize = new System.Drawing.Size(771, 504);
 			this.Controls.Add(this.label4);
 			this.Controls.Add(this.lb_keyConv);
 			this.Controls.Add(this.CB_test);

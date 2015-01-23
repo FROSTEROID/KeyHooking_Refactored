@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 using KeyboardExtending;
@@ -41,13 +42,15 @@ namespace KeyHooking_Refactored {
 		#region Logger demostration UI and Handlers
 		private void CB_makeLogger_Click(object sender, EventArgs e) {
 			_logger = new KeyLogger();
-			//_logger.Begin();
 		}
 		#endregion
 
 		#region ЭЭЭэкспериментыЫЫЫ
 		private void CB_test_Click(object sender, EventArgs e) {
 		
+		Thread thr = new Thread(Ther);
+		thr.Start();
+
 		KeysConverter a = new KeysConverter();
 		MessageBox.Show(Keys.D5.ToString());
 
@@ -59,6 +62,11 @@ namespace KeyHooking_Refactored {
 			s.Flush();
 			s.Close();
 		*/
+		}
+
+		void Ther() {
+			Thread.Sleep(100);
+			SendKeys.SendWait("\n");
 		}
 		#endregion
 	}
