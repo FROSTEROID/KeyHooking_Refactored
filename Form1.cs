@@ -4,7 +4,8 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
-
+using WindowsInput;
+using WindowsInput.Native;
 using KeyboardExtending;
 
 namespace KeyHooking_Refactored {
@@ -13,11 +14,15 @@ namespace KeyHooking_Refactored {
 		#region Serving objects
 		KeyHooker _hooker;
 		KeysConverter _converter;
+		IInputSimulator _simulator;
+		KeyBinder _binder;
+
 		KeyLogger _logger;
 		#endregion
 
 		public Form1() {
 		_converter = new KeysConverter();
+		_simulator = new InputSimulator();
 			InitializeComponent();
 		}
 
@@ -45,29 +50,30 @@ namespace KeyHooking_Refactored {
 		}
 		#endregion
 
+		private void CB_keyBinder_Click(object sender, EventArgs e) {
+			_binder = new KeyBinder();
+			_binder.AddBind(new[] { Keys.Capital, Keys.P }, new[] { Keys.Up, Keys.Up}, new[] { KeyAction.KeyDown, KeyAction.KeyUp });
+			_binder.AddBind(new[] { Keys.Capital, Keys.N }, new[] { Keys.Down, Keys.Down }, new[] { KeyAction.KeyDown, KeyAction.KeyUp });
+			_binder.AddBind(new[] { Keys.Capital, Keys.B }, new[] { Keys.Left, Keys.Left }, new[] { KeyAction.KeyDown, KeyAction.KeyUp });
+			_binder.AddBind(new[] { Keys.Capital, Keys.F }, new[] { Keys.Right, Keys.Right }, new[] { KeyAction.KeyDown, KeyAction.KeyUp });
+		}
+
 		#region ЭЭЭэкспериментыЫЫЫ
 		private void CB_test_Click(object sender, EventArgs e) {
-		
-		Thread thr = new Thread(Ther);
-		thr.Start();
+		_hooker = new KeyHooker();
+		_hooker.OnKeyActionEx +=_hooker_OnKeyActionEx1;
 
-		KeysConverter a = new KeysConverter();
-		MessageBox.Show(Keys.D5.ToString());
-
-		/*
-			StreamWriter s = new StreamWriter(new FileStream("test.txt", FileMode.OpenOrCreate), Encoding.Unicode);
-			s.Write("Azaz!");
-			s.Flush();
-			s.WriteLine("Azaz!");
-			s.Flush();
-			s.Close();
-		*/
+		//IInputSimulator simulator = new InputSimulator();
+		//simulator.Keyboard.KeyDown((VirtualKeyCode)Keys.LWin);
+		//simulator.Keyboard.KeyUp((VirtualKeyCode)Keys.LWin);
+		//simulator.Keyboard.KeyPress((VirtualKeyCode)Keys.LWin);
 		}
-
-		void Ther() {
-			Thread.Sleep(100);
-			SendKeys.SendWait("\n");
+		private bool _hooker_OnKeyActionEx1(IntPtr hookID, KeyActionArgs e) {
+			if(e.KeyCode == Keys.OemSemicolon && (KeyAction)e.KeyAction == KeyAction.KeyDown)
+				_simulator.Keyboard.KeyDown((VirtualKeyCode)Keys.Enter);
+			return false;
 		}
 		#endregion
+
 	}
 }

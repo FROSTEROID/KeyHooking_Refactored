@@ -1,18 +1,23 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Collections.Generic;
-using System.Threading;
-using System.Windows.Forms;
+﻿using System; // Would You write something interesting in C# for Windows without this namespace?
+using System.Diagnostics; // used to start a process of command line. ProcessStartInfo and Process.
+using System.IO;		// Yeah, some of loggers can write to a file
+using System.Runtime.InteropServices; // Needed to declare DLL using
+using System.Text;		// Encoding matters
+using System.Collections.Generic; // List<> is there
+using System.Threading;	// Thread.Sleep is what i need there
+using System.Windows.Forms; // Keys enumeration is here
+using System.Windows.Forms.VisualStyles;
+
+//This two are for IInputSimulator:
+using WindowsInput; // contains the simulator class
+using WindowsInput.Native; // holds VirtualKeyCode enumeration.
 
 //TODO: COMMENT EVERYTHING!!!!
 // Yeeeaaah, i'll do it one day. :D
 
 namespace KeyboardExtending {
 
-	#region Consts and Enums
+	#region Enums
 	public enum Layout {
 		RU = 1,
 		EN = 2
@@ -133,7 +138,7 @@ namespace KeyboardExtending {
 		/// Верните 1(true), чтобы заблокировать евент. 0(false) - пропустить далее.
 		/// ВАЖНО: Hooker не станет вызывать OnKeyAction, если будет возвращено требование блокирования.
 		/// Нельзя заблокировать Ctrl+Alt+Del.
-		/// В качестве определителя источника передаётся ID-указатель перехватывания. Можете составлять себе словари для них, если очень хочется несколько хуков.
+		/// В качестве определителя источника передаётся ID-указатель перехватывания. Можете составлять себе словари для них, если очень хочется несколько хуков. :P
 		/// </summary>
 		public event KeyActionHandlerEx OnKeyActionEx;
 		#endregion
@@ -167,7 +172,7 @@ namespace KeyboardExtending {
 		}
 		/// <summary>
 		/// На случай проблем с устойчивостью перехвата.
-		/// Если перехват ещё выполняется, он просто начнётся этим методом.
+		/// Если перехват ещё не выполняется, он просто начнётся этим методом.
 		/// For the case of instable hook.
 		/// </summary>
 		public void Rehook() {
@@ -189,104 +194,270 @@ namespace KeyboardExtending {
 	}
 	#endregion
 
-	#region Emulating
-	static class Emulate {
-		static void KeyAction(Keys key, KeyAction action) {
-			//TODO
-		}
-		static void KeyActions(Keys[] keys, KeyAction[] actions) {
-			//TODO
-		}
-		static void KeyPress(Keys key) {
-			//TODO
-		}
-		/// <summary>
-		/// Emulate Key combination - like Ctrl+C or anything that must be holded while next button is pressed.
-		/// Shall try to emulate a combination of any length. A received array of keys like {Keys.Ctrl, Keys.A, Keys.H} 
-		/// will be passed to the system like Ctrl+A+H.
-		/// </summary>
-		/// <param name="keys"></param>
-		static void KeyCombination(Keys[] keys) {
-			//TODO
-		}
-	}
-	#endregion
-
 	#region Binding
-	enum BindType {
-		Block,
-		Key,
-		Combination,
-		Command
-	}
+		#region BindInfo Classes
+		public abstract class BindInfo {
+			#region Parameters
+			public bool Block;
 
-	class Binded {
-		#region Parameters
-		private readonly BindType _type;
-		private readonly int _length;
-		private int _passed;
-		private bool _block;
-		
-		private Keys[] _keys;
-		private KeyAction[] _actions;
-		private string _command;
-		#endregion
+			public Keys[] BindedKeys;
+			public int Length;
+			public int Passed = 0;
+			#endregion
 
-		#region Structing
-		Binded(Keys[] key, KeyAction[] action, string command, bool block) {
-			_type = BindType.Command;
-			_block = block;
-			_command = command;
-			
-		}
-		Binded(Keys key, string command) {
-			_type = BindType.Command;
+			#region Executing
+				public abstract void Execute();
+			#endregion
 
 		}
-		#endregion
 
-		#region Execute
-		public bool Execute(Keys key, KeyAction action) {
-			
+		public class BindInfo_Keys : BindInfo {
+			#region Consts
+			public const int WAIT_BETWEEN_KEYACTIONS_EMULATING = 50; //milliseconds for Thread.Sleep
+			#endregion
 
-		}
-		#endregion
+			#region Parameters
+			private Keys[] _keysToEmulate;
+			private KeyAction[] _actionsToEmulate;
+			#endregion
 
-		#region Executers
-		private void ExecuteKey() {
-			
-		}
-		private void ExecuteCombination() {
-			
-		}
-		private void ExecuteCommand() {
-			try {} //TODO: _command execute!
-			catch(Exception a) {
-				MessageBox.Show(a.ToString());
+			#region Structing
+			/// <summary>
+			/// Key stroke binding. Like Ctrl+T+G+...
+			/// Will fire on the last keyDown. Firing means emulating the given keyActions chain
+			/// To explain the chain, You supply two massives like:
+			/// {Keys.RControlKey, Keys.G, Keys.G, Keys.RControlKey}
+			/// {KeyAction.KeyDown, KeyAction.KeyDown, KeyAction.KeyUp, KeyAction.KeyUp}
+			/// If You want to block the binded sequence while You're performing it,
+			/// just pass TRUE to the last argument. 
+			/// Note that if You then make a part of that sequence and perform an action
+			/// that is not presented in the binded sequence, the blocked sequence will be passed to the system.
+			/// </summary>
+			/// <param name="bindedKeys"></param>
+			/// <param name="keysToEmulate"></param>
+			/// <param name="actionsToEmulate"></param>
+			/// <param name="block"></param>
+			public BindInfo_Keys(Keys[] bindedKeys, Keys[] keysToEmulate, KeyAction[] actionsToEmulate, bool block) {
+				if (bindedKeys == null || keysToEmulate == null || actionsToEmulate == null) throw new Exception("Shit bricks, bitch!");
+				Block = block;
+				BindedKeys = bindedKeys;
+				Length = bindedKeys.Length;
+				_keysToEmulate = keysToEmulate;
+				_actionsToEmulate = actionsToEmulate;
 			}
+			public BindInfo_Keys(Keys[] bindedKeys, Keys[] keysToEmulate, bool block) {
+				if (bindedKeys == null || keysToEmulate == null) throw new Exception("Shit bricks, bitch!");
+				Block = block;
+				BindedKeys = bindedKeys;
+				Length = bindedKeys.Length;
+				_keysToEmulate = keysToEmulate;
+				_actionsToEmulate = new KeyAction[keysToEmulate.Length*2];
+				int i=0;
+				for(;i<_keysToEmulate.Length; i++){
+					_actionsToEmulate[i] = KeyAction.KeyDown;
+					_actionsToEmulate[i + _keysToEmulate.Length] = KeyAction.KeyUp;
+				}
+			}
+			#endregion
+
+			#region Executing
+			public override void Execute() {
+				IInputSimulator s = new InputSimulator();
+				for(int i=0; i<_keysToEmulate.Length; i++) {
+					switch(_actionsToEmulate[i]) {
+						case KeyAction.SysKeyUp:
+						case KeyAction.KeyUp:
+							s.Keyboard.KeyUp((VirtualKeyCode)_keysToEmulate[i]);
+							break;
+						case KeyAction.KeyDown:
+						case KeyAction.SysKeyDown:
+							s.Keyboard.KeyDown((VirtualKeyCode)_keysToEmulate[i]);
+							break;
+						default:
+							throw new ArgumentOutOfRangeException();
+					}
+					Thread.Sleep(WAIT_BETWEEN_KEYACTIONS_EMULATING);
+				}
+			}
+			#endregion
+		}
+
+		public class BindInfo_Command : BindInfo {
+			#region Parameters
+			readonly string _command;
+			private readonly bool _hideConsole;
+			#endregion
+
+			#region Structing
+			public BindInfo_Command(Keys[] bindedKeys, string command, bool hideConsole, bool block) {
+				if (bindedKeys == null || string.IsNullOrEmpty(command)) throw new Exception("Shit bricks, bitch!");
+				Block = block;
+				_hideConsole = hideConsole;
+				_command = command;
+				BindedKeys = bindedKeys;
+				Length = bindedKeys.Length;
+			}
+			#endregion
+
+			#region Executing
+			public override void Execute() {
+				Process process = new Process();
+				ProcessStartInfo startInfo = new ProcessStartInfo {
+					FileName = "cmd.exe", 
+					Arguments = "/C " + _command, 
+					WindowStyle = _hideConsole ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal
+				};
+				process.StartInfo = startInfo;
+				process.Start();
+			}
+			#endregion
+		}
+
+		public class BindInfo_Procedure: BindInfo {
+			#region Parameters
+			private EventHandler _procedure;
+			#endregion
+
+			#region Structing
+			public BindInfo_Procedure(Keys[] bindedKeys, EventHandler procedure, bool block) {
+				if (bindedKeys == null || procedure==null) throw new Exception("Shit bricks, bitch!");
+				Block = block;
+				_procedure += procedure;
+				BindedKeys = bindedKeys;
+				Length = bindedKeys.Length;
+			}
+			#endregion
+
+			#region Executing
+			public override void Execute() {
+				_procedure(null, null);
+			}
+			#endregion
 		}
 		#endregion
-	}
-	public class KeyBinder { //TODO: There is no KeyBinder. ;)
+
+	public class KeyBinder {
 		#region Serving objects
 		KeyHooker _hooker;
 		#endregion
 
+		#region KeyEvent struct
+		struct KeyEvent {
+			 public Keys Key;
+			 public KeyAction Action;
+
+			 public KeyEvent(Keys key, KeyAction action) {
+				 Key = key;
+				 Action = action;
+			 }
+		}
+		#endregion
+
 		#region Parameters
-		List<> 
+		List<BindInfo> _bindList;
+		List<KeyEvent> _blocked;
 		#endregion
 
 		#region Structing
 		public KeyBinder() {
+			_bindList = new List<BindInfo>();
+			_blocked = new List<KeyEvent>();
 			_hooker = new KeyHooker();
 			_hooker.OnKeyActionEx += _hooker_OnKeyActionEx;
 		}
 		#endregion
 
 		#region Handling
-		bool _hooker_OnKeyActionEx(IntPtr hookID, KeyActionArgs e) {
-			throw new NotImplementedException();
+		private bool _hooker_OnKeyActionEx(IntPtr hookID, KeyActionArgs e) {
+			bool block = false;
+			bool captured = false;
+			foreach(var bind in _bindList) {
+				if (((KeyAction)e.KeyAction==KeyAction.SysKeyDown || (KeyAction)e.KeyAction==KeyAction.KeyDown) && bind.BindedKeys[bind.Passed] == e.KeyCode) {
+					bind.Passed++;
+					captured = true;
+					if (bind.Block) {
+						block = true;
+					}
+					if(bind.Passed == bind.Length){
+						_hooker.OnKeyActionEx -= _hooker_OnKeyActionEx;
+						Unblock(_blocked.Count - bind.Length);
+						_blocked.Clear();
+						bind.Passed = 0;
+						bind.Execute();
+						_hooker.OnKeyActionEx += _hooker_OnKeyActionEx;
+					}
+				}
+			}
+			if(!captured) {
+				_hooker.OnKeyActionEx -= _hooker_OnKeyActionEx;
+				_blocked.Clear();
+				_hooker.OnKeyActionEx += _hooker_OnKeyActionEx;
+			}
+
+			if(block)
+				_blocked.Add(new KeyEvent(e.KeyCode, (KeyAction)e.KeyAction));
+
+			return block;
 		}
+		private void Unblock(int count) {
+			IInputSimulator s = new InputSimulator();
+			int i = 0;
+			foreach (var bl in _blocked) {
+				if (i == count)
+					break;
+				switch (bl.Action) {
+					case KeyAction.SysKeyDown:
+					case KeyAction.KeyDown:
+						s.Keyboard.KeyDown((VirtualKeyCode)bl.Key);
+						break;
+					case KeyAction.KeyUp:
+					case KeyAction.SysKeyUp:
+						s.Keyboard.KeyUp((VirtualKeyCode)bl.Key);
+						break;
+					default:
+						throw new ArgumentOutOfRangeException();
+				}
+			}
+		}
+		#endregion
+
+		#region Public Commands
+			#region Binds adding
+				#region KeysBind
+				public void AddBind(Keys[] keys, Keys[] keysToEmulate) {
+					_bindList.Add(new BindInfo_Keys(keys, keysToEmulate, true));
+				}
+				public void AddBind(Keys[] keys, Keys[] keysToEmulate, bool block) {
+					_bindList.Add(new BindInfo_Keys(keys, keysToEmulate, block));
+				}
+				public void AddBind(Keys[] keys, Keys[] keysToEmulate, KeyAction[] actionsToEmulate) {
+					_bindList.Add(new BindInfo_Keys(keys, keysToEmulate, actionsToEmulate, true));
+				}
+				public void AddBind(Keys[] keys, Keys[] keysToEmulate, KeyAction[] actionsToEmulate, bool block) {
+					_bindList.Add(new BindInfo_Keys(keys, keysToEmulate, actionsToEmulate, block));
+				}
+				#endregion
+				#region CommandBind
+				public void AddBind(Keys[] keys, string command, bool hideConsole) {
+					_bindList.Add(new BindInfo_Command(keys, command, hideConsole, true));
+				}
+				public void AddBind(Keys[] keys, string command, bool hideConsole, bool block) {
+					_bindList.Add(new BindInfo_Command(keys, command, hideConsole, block));
+				}
+				#endregion
+				#region ProcedureBind
+				public void AddBind(Keys[] keys, EventHandler bindHandler) {
+					_bindList.Add(new BindInfo_Procedure(keys, bindHandler, true));
+				}
+				public void AddBind(Keys[] keys, EventHandler bindHandler, bool block) {
+					_bindList.Add(new BindInfo_Procedure(keys, bindHandler, block));
+				}
+				#endregion
+			public void AddBind(BindInfo bindInfo) { // Pre-initialized bind. Can be of any type.
+				_bindList.Add(bindInfo);
+			}
+			#endregion
+
 		#endregion
 	}
 	#endregion
@@ -586,7 +757,7 @@ namespace KeyboardExtending {
 	}
 
 	public class KeyLogger { //TODO: Layouts. There must be a simple way to know what letter should be used for each button!
-		//TODO: Refactor it to smaller classes, make a virtual KeyLogger and then pull HardKeyLogger, RemoteKeyLogger some else KeyLogger from it. Oh shit.
+		//TODO: Refactor it to smaller classes, make a virtual KeyLogger and then pull HardKeyLogger, RemoteKeyLogger, some else KeyLogger from it. Oh shit.
 		#region Consts
 		public const String DEFAULT_TEXT_PATH = "Log_text.txt";
 		public const String DEFAULT_LOG_PATH = "Log.txt";
@@ -666,8 +837,7 @@ namespace KeyboardExtending {
 
 			string toWrite = _maker.Make(e.KeyCode, (KeyAction)e.KeyAction);
 			if(!string.IsNullOrEmpty(toWrite))
-				_writerText.Write(_maker.Make(e.KeyCode, (KeyAction)e.KeyAction));
-			else ;
+				_writerText.Write(toWrite); ;
 
 			_actions++;
 			if (_actions == ACTIONS_TO_FLUSH) {

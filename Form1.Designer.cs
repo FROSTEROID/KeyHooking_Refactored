@@ -35,11 +35,14 @@
 			this.CB_test = new System.Windows.Forms.Button();
 			this.lb_keyConv = new System.Windows.Forms.ListBox();
 			this.label4 = new System.Windows.Forms.Label();
+			this.groupBox1 = new System.Windows.Forms.GroupBox();
+			this.CB_keyBinder = new System.Windows.Forms.Button();
+			this.groupBox1.SuspendLayout();
 			this.SuspendLayout();
 			// 
 			// CB_makeHooker
 			// 
-			this.CB_makeHooker.Location = new System.Drawing.Point(12, 12);
+			this.CB_makeHooker.Location = new System.Drawing.Point(6, 19);
 			this.CB_makeHooker.Name = "CB_makeHooker";
 			this.CB_makeHooker.Size = new System.Drawing.Size(152, 23);
 			this.CB_makeHooker.TabIndex = 0;
@@ -52,9 +55,9 @@
 			this.lb_action.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
 			this.lb_action.FormattingEnabled = true;
-			this.lb_action.Location = new System.Drawing.Point(12, 67);
+			this.lb_action.Location = new System.Drawing.Point(6, 74);
 			this.lb_action.Name = "lb_action";
-			this.lb_action.Size = new System.Drawing.Size(100, 420);
+			this.lb_action.Size = new System.Drawing.Size(100, 472);
 			this.lb_action.TabIndex = 1;
 			// 
 			// lb_code
@@ -62,15 +65,15 @@
 			this.lb_code.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
 			this.lb_code.FormattingEnabled = true;
-			this.lb_code.Location = new System.Drawing.Point(118, 67);
+			this.lb_code.Location = new System.Drawing.Point(112, 74);
 			this.lb_code.Name = "lb_code";
-			this.lb_code.Size = new System.Drawing.Size(100, 420);
+			this.lb_code.Size = new System.Drawing.Size(100, 472);
 			this.lb_code.TabIndex = 2;
 			// 
 			// label1
 			// 
 			this.label1.AutoSize = true;
-			this.label1.Location = new System.Drawing.Point(9, 51);
+			this.label1.Location = new System.Drawing.Point(3, 58);
 			this.label1.Name = "label1";
 			this.label1.Size = new System.Drawing.Size(62, 13);
 			this.label1.TabIndex = 3;
@@ -81,15 +84,15 @@
 			this.lb_keyStr.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
 			this.lb_keyStr.FormattingEnabled = true;
-			this.lb_keyStr.Location = new System.Drawing.Point(224, 67);
+			this.lb_keyStr.Location = new System.Drawing.Point(218, 74);
 			this.lb_keyStr.Name = "lb_keyStr";
-			this.lb_keyStr.Size = new System.Drawing.Size(100, 420);
+			this.lb_keyStr.Size = new System.Drawing.Size(100, 472);
 			this.lb_keyStr.TabIndex = 4;
 			// 
 			// cb_blockAll
 			// 
 			this.cb_blockAll.AutoSize = true;
-			this.cb_blockAll.Location = new System.Drawing.Point(170, 16);
+			this.cb_blockAll.Location = new System.Drawing.Point(164, 23);
 			this.cb_blockAll.Name = "cb_blockAll";
 			this.cb_blockAll.Size = new System.Drawing.Size(71, 17);
 			this.cb_blockAll.TabIndex = 5;
@@ -99,7 +102,7 @@
 			// label2
 			// 
 			this.label2.AutoSize = true;
-			this.label2.Location = new System.Drawing.Point(115, 51);
+			this.label2.Location = new System.Drawing.Point(109, 58);
 			this.label2.Name = "label2";
 			this.label2.Size = new System.Drawing.Size(50, 13);
 			this.label2.TabIndex = 6;
@@ -108,7 +111,7 @@
 			// label3
 			// 
 			this.label3.AutoSize = true;
-			this.label3.Location = new System.Drawing.Point(221, 51);
+			this.label3.Location = new System.Drawing.Point(215, 58);
 			this.label3.Name = "label3";
 			this.label3.Size = new System.Drawing.Size(78, 13);
 			this.label3.TabIndex = 7;
@@ -116,7 +119,7 @@
 			// 
 			// CB_makeLogger
 			// 
-			this.CB_makeLogger.Location = new System.Drawing.Point(607, 12);
+			this.CB_makeLogger.Location = new System.Drawing.Point(497, 12);
 			this.CB_makeLogger.Name = "CB_makeLogger";
 			this.CB_makeLogger.Size = new System.Drawing.Size(152, 43);
 			this.CB_makeLogger.TabIndex = 8;
@@ -126,7 +129,7 @@
 			// 
 			// CB_test
 			// 
-			this.CB_test.Location = new System.Drawing.Point(684, 469);
+			this.CB_test.Location = new System.Drawing.Point(684, 547);
 			this.CB_test.Name = "CB_test";
 			this.CB_test.Size = new System.Drawing.Size(75, 23);
 			this.CB_test.TabIndex = 9;
@@ -139,41 +142,65 @@
 			this.lb_keyConv.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
 			this.lb_keyConv.FormattingEnabled = true;
-			this.lb_keyConv.Location = new System.Drawing.Point(330, 67);
+			this.lb_keyConv.Location = new System.Drawing.Point(324, 74);
 			this.lb_keyConv.Name = "lb_keyConv";
-			this.lb_keyConv.Size = new System.Drawing.Size(100, 420);
+			this.lb_keyConv.Size = new System.Drawing.Size(100, 472);
 			this.lb_keyConv.TabIndex = 10;
 			// 
 			// label4
 			// 
 			this.label4.AutoSize = true;
-			this.label4.Location = new System.Drawing.Point(327, 51);
+			this.label4.Location = new System.Drawing.Point(321, 58);
 			this.label4.Name = "label4";
 			this.label4.Size = new System.Drawing.Size(74, 13);
 			this.label4.TabIndex = 11;
 			this.label4.Text = "KeyConverted";
 			// 
+			// groupBox1
+			// 
+			this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+			this.groupBox1.Controls.Add(this.CB_makeHooker);
+			this.groupBox1.Controls.Add(this.label4);
+			this.groupBox1.Controls.Add(this.lb_action);
+			this.groupBox1.Controls.Add(this.lb_keyConv);
+			this.groupBox1.Controls.Add(this.lb_code);
+			this.groupBox1.Controls.Add(this.label1);
+			this.groupBox1.Controls.Add(this.lb_keyStr);
+			this.groupBox1.Controls.Add(this.label3);
+			this.groupBox1.Controls.Add(this.cb_blockAll);
+			this.groupBox1.Controls.Add(this.label2);
+			this.groupBox1.Location = new System.Drawing.Point(12, 12);
+			this.groupBox1.Name = "groupBox1";
+			this.groupBox1.Size = new System.Drawing.Size(432, 558);
+			this.groupBox1.TabIndex = 12;
+			this.groupBox1.TabStop = false;
+			this.groupBox1.Text = "Hooker";
+			// 
+			// CB_keyBinder
+			// 
+			this.CB_keyBinder.Location = new System.Drawing.Point(549, 153);
+			this.CB_keyBinder.Name = "CB_keyBinder";
+			this.CB_keyBinder.Size = new System.Drawing.Size(152, 43);
+			this.CB_keyBinder.TabIndex = 13;
+			this.CB_keyBinder.Text = "KeyBinder";
+			this.CB_keyBinder.UseVisualStyleBackColor = true;
+			this.CB_keyBinder.Click += new System.EventHandler(this.CB_keyBinder_Click);
+			// 
 			// Form1
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(771, 504);
-			this.Controls.Add(this.label4);
-			this.Controls.Add(this.lb_keyConv);
+			this.ClientSize = new System.Drawing.Size(771, 582);
+			this.Controls.Add(this.CB_keyBinder);
+			this.Controls.Add(this.groupBox1);
 			this.Controls.Add(this.CB_test);
 			this.Controls.Add(this.CB_makeLogger);
-			this.Controls.Add(this.label3);
-			this.Controls.Add(this.label2);
-			this.Controls.Add(this.cb_blockAll);
-			this.Controls.Add(this.lb_keyStr);
-			this.Controls.Add(this.label1);
-			this.Controls.Add(this.lb_code);
-			this.Controls.Add(this.lb_action);
-			this.Controls.Add(this.CB_makeHooker);
 			this.Name = "Form1";
 			this.Text = "Form1";
+			this.groupBox1.ResumeLayout(false);
+			this.groupBox1.PerformLayout();
 			this.ResumeLayout(false);
-			this.PerformLayout();
 
 		}
 
@@ -191,6 +218,8 @@
 		private System.Windows.Forms.Button CB_test;
 		private System.Windows.Forms.ListBox lb_keyConv;
 		private System.Windows.Forms.Label label4;
+		private System.Windows.Forms.GroupBox groupBox1;
+		private System.Windows.Forms.Button CB_keyBinder;
 	}
 }
 
