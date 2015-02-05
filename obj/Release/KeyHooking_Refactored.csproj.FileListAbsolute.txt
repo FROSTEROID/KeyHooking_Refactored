@@ -7,3 +7,5 @@ F:\Ivan\Projects\C#\VS\KeyHooking_Refactored\KeyHooking_Refactored\obj\Release\K
 F:\Ivan\Projects\C#\VS\KeyHooking_Refactored\KeyHooking_Refactored\obj\Release\KeyHooking_Refactored.csproj.GenerateResource.Cache
 F:\Ivan\Projects\C#\VS\KeyHooking_Refactored\KeyHooking_Refactored\obj\Release\KeyHooking_Refactored.exe
 F:\Ivan\Projects\C#\VS\KeyHooking_Refactored\KeyHooking_Refactored\obj\Release\KeyHooking_Refactored.pdb
+F:\Ivan\Projects\C#\VS\KeyHooking_Refactored\KeyHooking_Refactored\bin\Release\WindowsInput.dll
+F:\Ivan\Projects\C#\VS\KeyHooking_Refactored\KeyHooking_Refactored\bin\Release\WindowsInput.xml

@@ -6,27 +6,50 @@ using System.Text;		// Encoding matters
 using System.Collections.Generic; // List<> is there
 using System.Threading;	// Thread.Sleep is what i need there
 using System.Windows.Forms; // Keys enumeration is here
-using System.Windows.Forms.VisualStyles;
 
-//This two are for IInputSimulator:
+//This two are for IInputSimulator: 
 using WindowsInput; // contains the simulator class
 using WindowsInput.Native; // holds VirtualKeyCode enumeration.
+//They require from You to have a NuGet package named "Windows Input Simulator".
 
 //TODO: COMMENT EVERYTHING!!!!
 // Yeeeaaah, i'll do it one day. :D
 
+
+// This namespace is about keyboard input. May be, i'll later extend it to mouse, too.
+// If You want to understand how it works, You want to understand what's windows API
+// and how does the system interprets keys numbers and states.
+// There is no very intricated things to know, though.
+// 
 namespace KeyboardExtending {
 
 	#region Enums
-	public enum Layout {
+	public enum Layout { // Wanted to use it in KeyLogger. May be later. -_-
 		RU = 1,
 		EN = 2
 	}
+	/// <summary>
+	/// KeyAction codes - that's how the system indicates what's done with keys.
+	/// </summary>
 	public enum KeyAction {
 		SysKeyDown = 0x0104,
 		SysKeyUp = 0x0105,
 		KeyDown = 0x0100,
 		KeyUp = 0x0101,
+	}
+	/// <summary>
+	/// When we use GetKeyboardState() or something alike we receive bytes with flags
+	/// Yhey are put up(true) or down(false). So, if received flags byte contains "true"(1) bits
+	/// on the same places where they are in enumerated flags, then the enumerated parameter is true.
+	/// For example, if we receive 10000001, then there are Down and Locked flags ON.
+	/// NoDown and NoLocked are not used this way, they are used for putting that flags OFF.
+	/// </summary>
+	public enum KeyStateFlags : byte{
+		Down = 0x80, // Yeah, it's up, if it's not down. :D
+		NoDown = Down ^ 255,
+
+		Locked = 0x1, // For lock keys.
+		NoLocked = Locked ^ 255
 	}
 	#endregion
 
@@ -35,6 +58,7 @@ namespace KeyboardExtending {
 	public delegate bool KeyActionHandlerEx(IntPtr hookID, KeyActionArgs e);
 	/// <summary>
 	/// Структура переменной с информацией о клавиатурном событии.
+	/// A structure of a variable with information about keyboard event.
 	/// </summary>
 	public struct KeyActionArgs {
 		public KeyActionArgs(Keys keyCode, int keyAction) { KeyCode = keyCode; KeyAction = keyAction; }
@@ -42,6 +66,93 @@ namespace KeyboardExtending {
 		public Keys KeyCode;
 		public int KeyAction;
 	}
+	#endregion
+
+	#region Static Classes
+	/// <summary>
+	/// A static class from using some DLLs. Used in other classes, also can be used outside of the namespace
+	/// </summary>
+	static class KeyboardWatching {
+		#region Consts
+		public const byte KEYCODE_COUNT = 255;
+		#endregion
+
+		#region  DLL signatures
+			#region Layout
+		// Сохранил полный путь для.
+		[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+		private static extern IntPtr GetKeyboardLayout(int windowsThreadProcessID); // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646296%28v=vs.85%29.aspx
+		// If You read this page content You'll understand why the next two API functions are needed too.
+
+		[DllImport("user32.dll", CharSet = CharSet.Auto)]
+		private static extern int GetWindowThreadProcessId(IntPtr handleWindow, out int processID); // https://msdn.microsoft.com/en-us/library/windows/desktop/ms633522%28v=vs.85%29.aspx
+
+		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+		public static extern IntPtr GetForegroundWindow(); // https://msdn.microsoft.com/en-us/library/windows/desktop/ms633505%28v=vs.85%29.aspx
+		#endregion
+			#region Keys state
+			[DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
+			public static extern int GetKeyboardState(byte[] keystate); //https://msdn.microsoft.com/en-us/library/windows/desktop/ms646299%28v=vs.85%29.aspx
+
+			[DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
+			internal static extern short GetKeyState(int virtualKeyCode); //https://msdn.microsoft.com/en-us/library/windows/desktop/ms646301%28v=vs.85%29.aspx
+			#endregion
+		#endregion
+
+		#region Gettings
+		/// <summary>
+		/// Получить текущую раскладку
+		/// </summary>
+		/// <returns>Идентификационный номер активной раскладки</returns>
+		public static int GetLayoutID() {
+			IntPtr fWin = GetForegroundWindow();
+			int a; int winThrProsID = GetWindowThreadProcessId(fWin, out a);
+			IntPtr lOut = GetKeyboardLayout(winThrProsID);
+			for (int i = 0; i < InputLanguage.InstalledInputLanguages.Count; i++)
+				if (lOut == InputLanguage.InstalledInputLanguages[i].Handle)
+					return InputLanguage.InstalledInputLanguages[i].Culture.KeyboardLayoutId;
+			return 0;
+		}
+
+		public static byte[] GetKeysState() {
+			byte[] stateArr = new byte[KEYCODE_COUNT];
+			GetKeyboardState(stateArr);
+			return stateArr;
+		}
+		#endregion
+	}
+	#endregion
+
+	#region Keys State Watching
+		class KeysWatcher {
+			#region Parameters
+			private byte[] _keyStates;
+			#endregion
+
+			#region Structing
+			public KeysWatcher() {
+				_keyStates = KeyboardWatching.GetKeysState();
+			}
+			#endregion
+
+			#region Commands
+			public void KeyDown(Keys key) {
+				_keyStates[(int)key] = (byte)(_keyStates[(int)key] | (byte)KeyStateFlags.Down);
+			}
+			public void KeyUp(Keys key){
+				_keyStates[(int)key] = (byte)(_keyStates[(int)key] & (byte)KeyStateFlags.NoDown);
+			}
+			public	void Reset() {
+				_keyStates = KeyboardWatching.GetKeysState();
+			}
+			#endregion
+
+			#region Getting
+			public bool IsDown(Keys key) {
+				return (byte)(_keyStates[(int)key] & (byte)KeyStateFlags.Down) == (byte)KeyStateFlags.Down;
+			}
+			#endregion
+		}
 	#endregion
 
 	#region Hooking
@@ -208,12 +319,12 @@ namespace KeyboardExtending {
 			#region Executing
 				public abstract void Execute();
 			#endregion
-
 		}
 
 		public class BindInfo_Keys : BindInfo {
 			#region Consts
-			public const int WAIT_BETWEEN_KEYACTIONS_EMULATING = 50; //milliseconds for Thread.Sleep
+			public const int WAIT_BETWEEN_KEYACTIONS_EMULATING = 1; //milliseconds for Thread.Sleep. 
+			// Seems like there is no need to wait for system. But 1ms, nobody will care, yeah? :D
 			#endregion
 
 			#region Parameters
@@ -338,7 +449,8 @@ namespace KeyboardExtending {
 
 	public class KeyBinder {
 		#region Serving objects
-		KeyHooker _hooker;
+		readonly KeyHooker _hooker;
+		readonly KeysWatcher _watcher;
 		#endregion
 
 		#region KeyEvent struct
@@ -354,52 +466,37 @@ namespace KeyboardExtending {
 		#endregion
 
 		#region Parameters
-		List<BindInfo> _bindList;
-		List<KeyEvent> _blocked;
+		readonly List<BindInfo> _bindList;
+		readonly List<KeyEvent> _blocked;
+
+		private bool _block;
+		private bool _passed;
 		#endregion
 
 		#region Structing
 		public KeyBinder() {
 			_bindList = new List<BindInfo>();
 			_blocked = new List<KeyEvent>();
+			_watcher = new KeysWatcher();
 			_hooker = new KeyHooker();
 			_hooker.OnKeyActionEx += _hooker_OnKeyActionEx;
 		}
 		#endregion
 
-		#region Handling
-		private bool _hooker_OnKeyActionEx(IntPtr hookID, KeyActionArgs e) {
-			bool block = false;
-			bool captured = false;
+		#region Handling (Checking and Executing)
+		private void ResetPasses() {
 			foreach(var bind in _bindList) {
-				if (((KeyAction)e.KeyAction==KeyAction.SysKeyDown || (KeyAction)e.KeyAction==KeyAction.KeyDown) && bind.BindedKeys[bind.Passed] == e.KeyCode) {
-					bind.Passed++;
-					captured = true;
-					if (bind.Block) {
-						block = true;
-					}
-					if(bind.Passed == bind.Length){
-						_hooker.OnKeyActionEx -= _hooker_OnKeyActionEx;
-						Unblock(_blocked.Count - bind.Length);
-						_blocked.Clear();
-						bind.Passed = 0;
-						bind.Execute();
-						_hooker.OnKeyActionEx += _hooker_OnKeyActionEx;
-					}
-				}
+				bind.Passed = 0;
 			}
-			if(!captured) {
-				_hooker.OnKeyActionEx -= _hooker_OnKeyActionEx;
-				_blocked.Clear();
-				_hooker.OnKeyActionEx += _hooker_OnKeyActionEx;
-			}
-
-			if(block)
-				_blocked.Add(new KeyEvent(e.KeyCode, (KeyAction)e.KeyAction));
-
-			return block;
 		}
-		private void Unblock(int count) {
+
+		/// <summary>
+		/// Emulate some part of previously blocked keyboard actions.
+		/// </summary>
+		/// <param name="count">The count of actions to "unblock". Counting from the first blocked action.
+		///						If You pass a number more that the actual count of blocks, the program will just ignore it,
+		///						"unblocking" all the known blocked actions.</param>
+		private void Unblock(int count){
 			IInputSimulator s = new InputSimulator();
 			int i = 0;
 			foreach (var bl in _blocked) {
@@ -418,6 +515,86 @@ namespace KeyboardExtending {
 						throw new ArgumentOutOfRangeException();
 				}
 			}
+		}
+
+		/// <summary>
+		/// It checks whether the key that was pushed down is waited for by any of binds,
+		/// modifying parameters _passed and _block.
+		/// Executes bind if it's reached.
+		/// </summary>
+		/// <param name="keyCode"></param>
+		private void CheckKey(Keys keyCode){
+			foreach (var bind in _bindList) {
+				if (keyCode == bind.BindedKeys[bind.Passed]){
+					if (bind.Block) {
+						_block = true;
+					}
+					if (bind.Passed == bind.Length-1){
+						_passed = true;
+						_hooker.OnKeyActionEx -= _hooker_OnKeyActionEx;
+						Unblock(_blocked.Count - bind.Length + 1); // Разблокиваем всё, что не относится к выполненному бинду, но было заблокировано перед ним.
+						_blocked.Clear(); // Забываем, что что-либо блокировали - нам не надо деблочить биндодействия.
+						bind.Execute();
+						_hooker.OnKeyActionEx += _hooker_OnKeyActionEx;
+					}
+					else {
+						bind.Passed++;
+					}
+				}
+				else if(keyCode == bind.BindedKeys[bind.Length-1]) {
+					bool all = true;
+					for(int i=0; i<bind.Length-1; i++)
+						if(!_watcher.IsDown(bind.BindedKeys[i])) {
+							all = false; break;
+						}
+					if(all){
+						if (bind.Block) {
+							_block = true;
+						}
+						_passed = true;
+						bind.Passed=bind.Length-1;
+						_hooker.OnKeyActionEx -= _hooker_OnKeyActionEx;
+						_blocked.Clear();
+						bind.Execute();
+						_hooker.OnKeyActionEx += _hooker_OnKeyActionEx;
+					}
+				}
+				else{
+					bind.Passed = 0;
+				}
+			}
+		}
+
+		private bool _hooker_OnKeyActionEx(IntPtr hookID, KeyActionArgs e){
+			_block = false;
+			_passed = false;
+			//Thread.Sleep(1000);
+			if ((KeyAction)e.KeyAction == KeyAction.SysKeyDown || (KeyAction)e.KeyAction == KeyAction.KeyDown){
+				_watcher.KeyDown(e.KeyCode);
+				CheckKey(e.KeyCode);
+			}
+			else { // Если действие — отпускание кнопки, то обработку производить незачем, сбрасываем все достижения в биндах.
+				_watcher.KeyUp(e.KeyCode);
+				_hooker.OnKeyActionEx -= _hooker_OnKeyActionEx;
+				Unblock(_blocked.Count);
+				_blocked.Clear();
+				_hooker.OnKeyActionEx += _hooker_OnKeyActionEx;
+				ResetPasses();
+				return false;
+			}
+			if(_block){
+				if(!_passed){
+					_blocked.Add(new KeyEvent(e.KeyCode, (KeyAction)e.KeyAction));
+				}
+			}
+			else {
+				_hooker.OnKeyActionEx -= _hooker_OnKeyActionEx;
+				Unblock(_blocked.Count);
+				_blocked.Clear();
+				_hooker.OnKeyActionEx += _hooker_OnKeyActionEx;
+			}
+
+			return _block;
 		}
 		#endregion
 
@@ -463,38 +640,8 @@ namespace KeyboardExtending {
 	#endregion
 
 	#region Logging
-	static class LayoutWatcher {
-		#region  DLL signatures
-		// Сохранил полный путь для.
-		[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
-		private static extern IntPtr GetKeyboardLayout(int windowsThreadProcessID);
-
-		[DllImport("user32.dll", CharSet = CharSet.Auto)]
-		private static extern int GetWindowThreadProcessId(IntPtr handleWindow, out int processID);
-
-		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-		public static extern IntPtr GetForegroundWindow();
-		#endregion
-
-		#region Gettings
-		/// <summary>
-		/// Получить текущую раскладку
-		/// </summary>
-		/// <returns>Идентификационный номер активной раскладки</returns>
-		public static int GetLayoutID() {
-			IntPtr fWin = GetForegroundWindow();
-			int a; int winThrProsID = GetWindowThreadProcessId(fWin, out a);
-			IntPtr lOut = GetKeyboardLayout(winThrProsID);
-			for (int i = 0; i < InputLanguage.InstalledInputLanguages.Count; i++)
-				if (lOut == InputLanguage.InstalledInputLanguages[i].Handle)
-					return InputLanguage.InstalledInputLanguages[i].Culture.KeyboardLayoutId;
-			return 0;
-		}
-		#endregion
-	}
-
 	class LogMaker {
-		private KeysConverter _converter;
+		private readonly KeysConverter _converter;
 		private bool _shift;
 		private bool _alt;
 		private bool _ctrl;

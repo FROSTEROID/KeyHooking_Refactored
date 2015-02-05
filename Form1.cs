@@ -20,11 +20,13 @@ namespace KeyHooking_Refactored {
 		KeyLogger _logger;
 		#endregion
 
+		#region Structing
 		public Form1() {
 		_converter = new KeysConverter();
 		_simulator = new InputSimulator();
 			InitializeComponent();
 		}
+		#endregion
 
 		#region Hooker demostration UI and Handlers
 		private void CB_makeHooker_Click(object sender, EventArgs e){
@@ -50,6 +52,7 @@ namespace KeyHooking_Refactored {
 		}
 		#endregion
 
+		#region Binder demonstration UI and Handlers
 		private void CB_keyBinder_Click(object sender, EventArgs e) {
 			_binder = new KeyBinder();
 			_binder.AddBind(new[] { Keys.Capital, Keys.P }, new[] { Keys.Up, Keys.Up}, new[] { KeyAction.KeyDown, KeyAction.KeyUp });
@@ -57,11 +60,19 @@ namespace KeyHooking_Refactored {
 			_binder.AddBind(new[] { Keys.Capital, Keys.B }, new[] { Keys.Left, Keys.Left }, new[] { KeyAction.KeyDown, KeyAction.KeyUp });
 			_binder.AddBind(new[] { Keys.Capital, Keys.F }, new[] { Keys.Right, Keys.Right }, new[] { KeyAction.KeyDown, KeyAction.KeyUp });
 		}
+		#endregion
 
 		#region ЭЭЭэкспериментыЫЫЫ
 		private void CB_test_Click(object sender, EventArgs e) {
-		_hooker = new KeyHooker();
-		_hooker.OnKeyActionEx +=_hooker_OnKeyActionEx1;
+		//_hooker = new KeyHooker();
+		//_hooker.OnKeyActionEx +=_hooker_OnKeyActionEx1;
+
+		MessageBox.Show(@"By GetKeyState: " + KeyboardWatching.GetKeyState((int)Keys.Capital));
+		MessageBox.Show(@"By GetKeysState: " + KeyboardWatching.GetKeysState()[20]);
+		
+		
+		//Thread.Sleep(1000);
+		//_simulator.Keyboard.TextEntry("ᵺ"); // The fucking possibility to enter any character. o_<
 
 		//IInputSimulator simulator = new InputSimulator();
 		//simulator.Keyboard.KeyDown((VirtualKeyCode)Keys.LWin);
@@ -74,6 +85,23 @@ namespace KeyHooking_Refactored {
 			return false;
 		}
 		#endregion
-
 	}
 }
+
+
+
+//button1.Text = "working..."; Application.DoEvents();
+
+//			string[] str =  new string[1000];
+//			Random a = new Random();
+//			for(int j=0; j<1000; j++){
+//			str[j] = "";
+//			for(int i=500; i>0; i--)str[j]+=(char)a.Next(250);
+//			}
+
+//			lb_keyConv.Items.AddRange(str);
+
+//			label4.Text = lb_keyConv.Items.Count.ToString();
+
+//			button1.Text = "Ready!";
+//			Application.DoEvents();
